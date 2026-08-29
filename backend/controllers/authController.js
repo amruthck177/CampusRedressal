@@ -17,22 +17,22 @@ exports.register = async (req, res) => {
       return res.status(400).json({ message: 'Please provide all fields' });
     }
 
-    // Check if email is gmail
-    const emailDomain = email.split('@')[1].toLowerCase();
+    const normalizedEmail = email.trim().toLowerCase();
+    const emailDomain = normalizedEmail.includes('@') ? normalizedEmail.split('@')[1] : '';
     const isGmail = emailDomain === 'gmail.com';
     
     if (isGmail && (!studentId || !studentId.trim())) {
       return res.status(400).json({ message: 'Gmail registrations require a Student ID / Roll Number for verification' });
     }
 
-    let user = await User.findOne({ email });
+    let user = await User.findOne({ email: normalizedEmail });
     if (user) {
-      return res.status(400).json({ message: 'User already exists' });
+      return res.status(400).json({ message: 'An account with this email already exists' });
     }
 
     user = new User({
-      name,
-      email,
+      name: name.trim(),
+      email: normalizedEmail,
       password,
       role: 'student', // Public registration is student-only
       studentId: isGmail ? studentId.trim() : null,
@@ -52,8 +52,8 @@ exports.register = async (req, res) => {
       },
     });
   } catch (err) {
-    console.error(err);
-    res.status(500).json({ message: 'Server error' });
+    console.error('Registration error:', err);
+    res.status(500).json({ message: 'Server error during registration' });
   }
 };
 
@@ -65,14 +65,15 @@ exports.login = async (req, res) => {
       return res.status(400).json({ message: 'Please provide all fields' });
     }
 
-    const user = await User.findOne({ email });
+    const normalizedEmail = email.trim().toLowerCase();
+    const user = await User.findOne({ email: normalizedEmail });
     if (!user) {
-      return res.status(400).json({ message: 'Invalid credentials' });
+      return res.status(400).json({ message: 'Invalid email or password' });
     }
 
     const isMatch = await user.comparePassword(password);
     if (!isMatch) {
-      return res.status(400).json({ message: 'Invalid credentials' });
+      return res.status(400).json({ message: 'Invalid email or password' });
     }
 
     const token = generateToken(user);
@@ -87,8 +88,8 @@ exports.login = async (req, res) => {
       },
     });
   } catch (err) {
-    console.error(err);
-    res.status(500).json({ message: 'Server error' });
+    console.error('Login error:', err);
+    res.status(500).json({ message: 'Server error during login' });
   }
 };
 

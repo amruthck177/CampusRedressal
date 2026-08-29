@@ -54,7 +54,14 @@ export const AuthProvider = ({ children }) => {
       setUser(loggedUser);
       return loggedUser;
     } catch (err) {
-      const msg = err.response?.data?.message || 'Login failed';
+      let msg = err.response?.data?.message;
+      if (!msg) {
+        if (err.message === 'Network Error' || !err.response) {
+          msg = 'Cannot connect to backend server. Please make sure backend is running on port 5000.';
+        } else {
+          msg = 'Login failed. Please check your credentials.';
+        }
+      }
       setError(msg);
       throw new Error(msg);
     }
@@ -70,7 +77,14 @@ export const AuthProvider = ({ children }) => {
       setUser(registeredUser);
       return registeredUser;
     } catch (err) {
-      const msg = err.response?.data?.message || 'Registration failed';
+      let msg = err.response?.data?.message;
+      if (!msg) {
+        if (err.message === 'Network Error' || !err.response) {
+          msg = 'Cannot connect to backend server. Please make sure backend is running on port 5000.';
+        } else {
+          msg = 'Registration failed. Please try again.';
+        }
+      }
       setError(msg);
       throw new Error(msg);
     }

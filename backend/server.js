@@ -14,16 +14,24 @@ const app = express();
 
 // Middlewares
 const allowedOrigins = process.env.FRONTEND_URL
-  ? [process.env.FRONTEND_URL, 'http://localhost:5173']
-  : ['http://localhost:5173'];
+  ? [process.env.FRONTEND_URL, 'http://localhost:5173', 'http://localhost:5174', 'http://localhost:3000', 'http://127.0.0.1:5173', 'http://127.0.0.1:5174']
+  : ['http://localhost:5173', 'http://localhost:5174', 'http://localhost:3000', 'http://127.0.0.1:5173', 'http://127.0.0.1:5174'];
 
 app.use(cors({
   origin: (origin, callback) => {
-    if (!origin || allowedOrigins.includes(origin)) {
-      callback(null, true);
-    } else {
-      callback(new Error('Not allowed by CORS'));
+    // Allow requests with no origin (e.g. mobile apps, curl, postman)
+    if (!origin) return callback(null, true);
+    
+    // Allow any localhost / 127.0.0.1 port in development or preview
+    if (/^https?:\/\/(localhost|127\.0\.0\.1)(:\d+)?$/.test(origin)) {
+      return callback(null, true);
     }
+
+    if (allowedOrigins.includes(origin) || process.env.NODE_ENV !== 'production') {
+      return callback(null, true);
+    }
+    
+    return callback(new Error('Not allowed by CORS'));
   },
   credentials: true,
 }));
@@ -54,7 +62,12 @@ const upload = multer({
 });
 
 // Database connection logic
-const startDatabase = async () => {
+let isConnecting = false;
+const connectDatabase = async () => {
+  if (mongoose.connection.readyState >= 1) return;
+  if (isConnecting) return;
+
+  isConnecting = true;
   const mongoUri = process.env.MONGODB_URI || process.env.DATABASE_URL;
 
   if (mongoUri) {
@@ -63,12 +76,13 @@ const startDatabase = async () => {
       console.log('Connected to MongoDB Atlas successfully.');
     } catch (err) {
       console.error('Failed to connect to MongoDB Atlas:', err.message);
-      process.exit(1);
+      if (require.main === module) process.exit(1);
+    } finally {
+      isConnecting = false;
     }
   } else {
     try {
       console.log('No MONGODB_URI found. Starting In-Memory MongoDB server...');
-      // Lazy-require so this devDependency is not needed in production builds
       const { MongoMemoryServer } = require('mongodb-memory-server');
       const mongoServer = await MongoMemoryServer.create({
         instance: {
@@ -79,16 +93,25 @@ const startDatabase = async () => {
       await mongoose.connect(uri);
       console.log('Connected to In-Memory MongoDB:', uri);
       
-      // Auto seed in-memory DB when initialized
       const seedScript = require('./scripts/seed');
       await seedScript.seedData();
       console.log('In-Memory DB seeded with default credentials.');
     } catch (err) {
       console.error('Failed to start In-Memory MongoDB server:', err.message);
-      process.exit(1);
+      if (require.main === module) process.exit(1);
+    } finally {
+      isConnecting = false;
     }
   }
 };
+
+// Middleware to ensure DB is connected before processing requests
+app.use(async (req, res, next) => {
+  if (mongoose.connection.readyState < 1) {
+    await connectDatabase();
+  }
+  next();
+});
 
 // API Routes
 
@@ -123,8 +146,12 @@ app.use((err, req, res, next) => {
 
 const PORT = process.env.PORT || 5000;
 
-startDatabase().then(() => {
-  app.listen(PORT, () => {
-    console.log(`Server is running on port ${PORT}`);
+if (require.main === module) {
+  connectDatabase().then(() => {
+    app.listen(PORT, () => {
+      console.log(`Server is running on port ${PORT}`);
+    });
   });
-});
+}
+
+module.exports = app;
