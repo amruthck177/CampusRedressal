@@ -1,26 +1,15 @@
 import React, { useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
-import { ShieldCheck, Mail, Lock, AlertCircle, Sparkles } from 'lucide-react';
+import { ShieldCheck, Mail, Lock, AlertCircle } from 'lucide-react';
 
 const Login = () => {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
   const [formError, setFormError] = useState('');
-  const [showDemo, setShowDemo] = useState(false);
-  const [logoClicks, setLogoClicks] = useState(0);
   const { login } = useAuth();
   const navigate = useNavigate();
-
-  const handleLogoClick = () => {
-    const next = logoClicks + 1;
-    setLogoClicks(next);
-    if (next >= 5) {
-      setShowDemo(true);
-      setLogoClicks(0);
-    }
-  };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -48,33 +37,6 @@ const Login = () => {
     }
   };
 
-  // Quick seed logins for graders
-  const handleQuickLogin = async (role) => {
-    setFormError('');
-    setLoading(true);
-    const credentials = {
-      student: { email: 'student@college.edu', pass: 'student123' },
-      admin: { email: 'admin@college.edu', pass: 'admin123' },
-      staff: { email: 'staff@college.edu', pass: 'staff123' },
-    };
-
-    const target = credentials[role];
-    try {
-      const user = await login(target.email, target.pass);
-      if (user.role === 'admin') {
-        navigate('/admin');
-      } else if (user.role === 'staff') {
-        navigate('/staff');
-      } else {
-        navigate('/student');
-      }
-    } catch (err) {
-      setFormError(err.message || 'Quick login failed');
-    } finally {
-      setLoading(false);
-    }
-  };
-
   return (
     <div className="min-h-screen bg-slate-950 flex flex-col justify-center items-center px-4 relative overflow-hidden">
       {/* Background glowing decorations */}
@@ -84,11 +46,7 @@ const Login = () => {
       <div className="w-full max-w-md">
         {/* App Title Header */}
         <div className="flex flex-col items-center mb-8">
-          <div
-            className="w-12 h-12 bg-gradient-to-tr from-brand-600 to-emerald-400 rounded-2xl flex items-center justify-center shadow-lg shadow-brand-500/20 mb-3 border border-brand-400/20 cursor-pointer select-none"
-            onClick={handleLogoClick}
-            title=""
-          >
+          <div className="w-12 h-12 bg-gradient-to-tr from-brand-600 to-emerald-400 rounded-2xl flex items-center justify-center shadow-lg shadow-brand-500/20 mb-3 border border-brand-400/20">
             <ShieldCheck className="w-6 h-6 text-slate-950 stroke-[2.5]" />
           </div>
           <h1 className="text-3xl font-extrabold tracking-tight text-white font-sans">
@@ -166,47 +124,6 @@ const Login = () => {
               Create student account
             </Link>
           </p>
-        </div>
-
-        {/* Quick Testing Credentials Panel — hidden, revealed by clicking logo 5 times */}
-        <div
-          className={`glass-card rounded-xl p-5 mt-6 border border-slate-700/60 overflow-hidden transition-all duration-500 ease-in-out ${
-            showDemo ? 'max-h-40 opacity-100 translate-y-0' : 'max-h-0 opacity-0 -translate-y-2 pointer-events-none'
-          }`}
-        >
-          <div className="flex items-center justify-between mb-3">
-            <div className="flex items-center gap-1.5 text-brand-400 text-xs font-bold uppercase tracking-wider">
-              <Sparkles className="w-3.5 h-3.5" />
-              <span>Quick Login</span>
-            </div>
-            <button onClick={() => setShowDemo(false)} className="text-slate-600 hover:text-slate-400 text-xs">✕</button>
-          </div>
-          <div className="grid grid-cols-3 gap-2">
-            <button
-              onClick={() => handleQuickLogin('student')}
-              disabled={loading}
-              className="bg-slate-900 hover:bg-slate-800 border border-slate-800 hover:border-brand-500/30 text-left p-2 rounded-lg text-[10px] transition-all"
-            >
-              <div className="font-semibold text-slate-200 truncate">Demo Student</div>
-              <div className="text-slate-500 truncate">student@college.edu</div>
-            </button>
-            <button
-              onClick={() => handleQuickLogin('admin')}
-              disabled={loading}
-              className="bg-slate-900 hover:bg-slate-800 border border-slate-800 hover:border-emerald-500/30 text-left p-2 rounded-lg text-[10px] transition-all"
-            >
-              <div className="font-semibold text-slate-200 truncate">System Admin</div>
-              <div className="text-slate-500 truncate">admin@college.edu</div>
-            </button>
-            <button
-              onClick={() => handleQuickLogin('staff')}
-              disabled={loading}
-              className="bg-slate-900 hover:bg-slate-800 border border-slate-800 hover:border-blue-500/30 text-left p-2 rounded-lg text-[10px] transition-all"
-            >
-              <div className="font-semibold text-slate-200 truncate">Warden Staff</div>
-              <div className="text-slate-500 truncate">staff@college.edu</div>
-            </button>
-          </div>
         </div>
       </div>
     </div>
