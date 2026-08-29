@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
-import { ShieldCheck, Mail, Lock, AlertCircle, Sparkles, ChevronDown, ChevronUp } from 'lucide-react';
+import { ShieldCheck, Mail, Lock, AlertCircle, Sparkles } from 'lucide-react';
 
 const Login = () => {
   const [email, setEmail] = useState('');
@@ -74,7 +74,11 @@ const Login = () => {
       <div className="w-full max-w-md">
         {/* App Title Header */}
         <div className="flex flex-col items-center mb-8">
-          <div className="w-12 h-12 bg-gradient-to-tr from-brand-600 to-emerald-400 rounded-2xl flex items-center justify-center shadow-lg shadow-brand-500/20 mb-3 border border-brand-400/20">
+          <div
+            onClick={() => setShowDemo(!showDemo)}
+            className="w-12 h-12 bg-gradient-to-tr from-brand-600 to-emerald-400 rounded-2xl flex items-center justify-center shadow-lg shadow-brand-500/20 mb-3 border border-brand-400/20 cursor-pointer select-none transition-transform active:scale-95"
+            title="Campus Redressal"
+          >
             <ShieldCheck className="w-6 h-6 text-slate-950 stroke-[2.5]" />
           </div>
           <h1 className="text-3xl font-extrabold tracking-tight text-white font-sans">
@@ -154,52 +158,41 @@ const Login = () => {
           </p>
         </div>
 
-        {/* Hidden / Collapsible Demo Credentials Button */}
-        <div className="mt-4 flex flex-col items-center">
-          <button
-            type="button"
-            onClick={() => setShowDemo(!showDemo)}
-            className="text-xs text-slate-500 hover:text-slate-300 flex items-center gap-1.5 transition-colors py-1 px-3 rounded-full hover:bg-slate-900/60 border border-transparent hover:border-slate-800"
-          >
-            <Sparkles className="w-3 h-3 text-brand-400/70" />
-            <span>{showDemo ? 'Hide Demo Logins' : 'Demo Logins'}</span>
-            {showDemo ? <ChevronUp className="w-3 h-3" /> : <ChevronDown className="w-3 h-3" />}
-          </button>
-
-          {showDemo && (
-            <div className="glass-card rounded-xl p-4 mt-3 w-full border border-slate-800/80 shadow-xl transition-all animate-fadeIn">
-              <div className="text-[11px] text-slate-400 mb-2.5 text-center">
-                Click any role below to sign in instantly:
-              </div>
-              <div className="grid grid-cols-3 gap-2">
-                <button
-                  onClick={() => handleQuickLogin('student')}
-                  disabled={loading}
-                  className="bg-slate-900 hover:bg-slate-800 border border-slate-800 hover:border-brand-500/40 text-left p-2 rounded-lg text-[10px] transition-all"
-                >
-                  <div className="font-semibold text-slate-200 truncate">Student</div>
-                  <div className="text-slate-500 text-[9px] truncate">student@college.edu</div>
-                </button>
-                <button
-                  onClick={() => handleQuickLogin('admin')}
-                  disabled={loading}
-                  className="bg-slate-900 hover:bg-slate-800 border border-slate-800 hover:border-emerald-500/40 text-left p-2 rounded-lg text-[10px] transition-all"
-                >
-                  <div className="font-semibold text-slate-200 truncate">Admin</div>
-                  <div className="text-slate-500 text-[9px] truncate">admin@college.edu</div>
-                </button>
-                <button
-                  onClick={() => handleQuickLogin('staff')}
-                  disabled={loading}
-                  className="bg-slate-900 hover:bg-slate-800 border border-slate-800 hover:border-blue-500/40 text-left p-2 rounded-lg text-[10px] transition-all"
-                >
-                  <div className="font-semibold text-slate-200 truncate">Staff</div>
-                  <div className="text-slate-500 text-[9px] truncate">staff@college.edu</div>
-                </button>
-              </div>
+        {/* Quick Testing Credentials Panel — hidden by default, toggled by clicking the Shield Logo once */}
+        {showDemo && (
+          <div className="glass-card rounded-xl p-5 mt-6 border border-slate-800 animate-fadeIn">
+            <div className="flex items-center gap-1.5 text-brand-400 text-xs font-bold uppercase tracking-wider mb-3">
+              <Sparkles className="w-3.5 h-3.5" />
+              <span>Developer / Grader Quick Login</span>
             </div>
-          )}
-        </div>
+            <div className="grid grid-cols-3 gap-2">
+              <button
+                onClick={() => handleQuickLogin('student')}
+                disabled={loading}
+                className="bg-slate-900 hover:bg-slate-800 border border-slate-800 hover:border-brand-500/30 text-left p-2 rounded-lg text-[10px] transition-all"
+              >
+                <div className="font-semibold text-slate-200 truncate">Demo Student</div>
+                <div className="text-slate-500 truncate">student@college.edu</div>
+              </button>
+              <button
+                onClick={() => handleQuickLogin('admin')}
+                disabled={loading}
+                className="bg-slate-900 hover:bg-slate-800 border border-slate-800 hover:border-emerald-500/30 text-left p-2 rounded-lg text-[10px] transition-all"
+              >
+                <div className="font-semibold text-slate-200 truncate">System Admin</div>
+                <div className="text-slate-500 truncate">admin@college.edu</div>
+              </button>
+              <button
+                onClick={() => handleQuickLogin('staff')}
+                disabled={loading}
+                className="bg-slate-900 hover:bg-slate-800 border border-slate-800 hover:border-blue-500/30 text-left p-2 rounded-lg text-[10px] transition-all"
+              >
+                <div className="font-semibold text-slate-200 truncate">Warden Staff</div>
+                <div className="text-slate-500 truncate">staff@college.edu</div>
+              </button>
+            </div>
+          </div>
+        )}
       </div>
     </div>
   );
