@@ -78,14 +78,14 @@ const Login = () => {
             onClick={() => setShowDemo(!showDemo)}
             className={`w-12 h-12 rounded-2xl flex items-center justify-center shadow-lg mb-3 border cursor-pointer select-none transition-all duration-300 active:scale-95 ${
               showDemo
-                ? 'bg-gradient-to-tr from-brand-600 to-emerald-400 border-brand-400/40 shadow-brand-500/30 ring-2 ring-brand-400/30'
-                : 'bg-white/10 border-white/20 hover:bg-white/15 shadow-black/30'
+                ? 'bg-white/20 border-white/40 shadow-white/10 ring-2 ring-white/30'
+                : 'bg-gradient-to-tr from-brand-600 to-emerald-400 border-brand-400/20 shadow-brand-500/20'
             }`}
             title="Campus Redressal"
           >
             <ShieldCheck
               className={`w-6 h-6 stroke-[2.5] transition-colors duration-300 ${
-                showDemo ? 'text-slate-950' : 'text-white'
+                showDemo ? 'text-white' : 'text-slate-950'
               }`}
             />
           </div>
