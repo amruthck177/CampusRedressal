@@ -76,10 +76,18 @@ const Login = () => {
         <div className="flex flex-col items-center mb-8">
           <div
             onClick={() => setShowDemo(!showDemo)}
-            className="w-12 h-12 bg-gradient-to-tr from-brand-600 to-emerald-400 rounded-2xl flex items-center justify-center shadow-lg shadow-brand-500/20 mb-3 border border-brand-400/20 cursor-pointer select-none transition-transform active:scale-95"
+            className={`w-12 h-12 rounded-2xl flex items-center justify-center shadow-lg mb-3 border cursor-pointer select-none transition-all duration-300 active:scale-95 ${
+              showDemo
+                ? 'bg-gradient-to-tr from-brand-600 to-emerald-400 border-brand-400/40 shadow-brand-500/30 ring-2 ring-brand-400/30'
+                : 'bg-white/10 border-white/20 hover:bg-white/15 shadow-black/30'
+            }`}
             title="Campus Redressal"
           >
-            <ShieldCheck className="w-6 h-6 text-slate-950 stroke-[2.5]" />
+            <ShieldCheck
+              className={`w-6 h-6 stroke-[2.5] transition-colors duration-300 ${
+                showDemo ? 'text-slate-950' : 'text-white'
+              }`}
+            />
           </div>
           <h1 className="text-3xl font-extrabold tracking-tight text-white font-sans">
             Campus <span className="text-brand-400">Redressal</span>
