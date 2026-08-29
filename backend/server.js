@@ -27,6 +27,11 @@ app.use(cors({
       return callback(null, true);
     }
 
+    // Allow Vercel deployments
+    if (/^https:\/\/[a-zA-Z0-9_-]+\.vercel\.app$/.test(origin)) {
+      return callback(null, true);
+    }
+
     if (allowedOrigins.includes(origin) || process.env.NODE_ENV !== 'production') {
       return callback(null, true);
     }

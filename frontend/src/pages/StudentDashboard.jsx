@@ -54,7 +54,8 @@ const StudentDashboard = () => {
 
       const commRes = await axios.get(`${API_URL}/complaints`);
       // Filter out anonymous complaints from other users for privacy, but keep student's own anonymous complaints in myRes
-      const community = commRes.data.filter(c => !c.isAnonymous || c.studentId === user.id);
+      const currentUserId = user?.id || user?._id;
+      const community = commRes.data.filter(c => !c.isAnonymous || (currentUserId && c.studentId === currentUserId));
       setCommunityComplaints(community);
     } catch (err) {
       console.error('Error fetching complaints:', err);

@@ -45,10 +45,12 @@ exports.register = async (req, res) => {
       token,
       user: {
         id: user._id,
+        _id: user._id,
         name: user.name,
         email: user.email,
         role: user.role,
         department: user.department,
+        studentId: user.studentId,
       },
     });
   } catch (err) {
@@ -81,10 +83,12 @@ exports.login = async (req, res) => {
       token,
       user: {
         id: user._id,
+        _id: user._id,
         name: user.name,
         email: user.email,
         role: user.role,
         department: user.department,
+        studentId: user.studentId,
       },
     });
   } catch (err) {
@@ -99,7 +103,15 @@ exports.getMe = async (req, res) => {
     if (!user) {
       return res.status(404).json({ message: 'User not found' });
     }
-    res.json(user);
+    res.json({
+      id: user._id,
+      _id: user._id,
+      name: user.name,
+      email: user.email,
+      role: user.role,
+      department: user.department,
+      studentId: user.studentId,
+    });
   } catch (err) {
     console.error(err);
     res.status(500).json({ message: 'Server error' });

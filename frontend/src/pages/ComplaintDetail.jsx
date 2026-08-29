@@ -28,7 +28,7 @@ import {
 const ComplaintDetail = () => {
   const { id } = useParams();
   const navigate = useNavigate();
-  const { user, API_URL } = useAuth();
+  const { user, API_URL, BASE_URL } = useAuth();
   const [complaint, setComplaint] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
@@ -217,8 +217,10 @@ const ComplaintDetail = () => {
   }
 
   const isAdminOrStaff = user?.role === 'admin' || user?.role === 'staff';
-  const isAuthor = user?.id === (complaint.studentId ? complaint.studentId.toString() : null) || (complaint.studentId === null && !isAdminOrStaff); // Handling edge-case anonymous authors locally
-  const hasUpvoted = complaint.upvotes?.includes(user?.id);
+  const currentUserId = user?.id || user?._id;
+  const complaintStudentId = complaint.studentId ? complaint.studentId.toString() : null;
+  const isAuthor = (currentUserId && complaintStudentId && currentUserId === complaintStudentId) || (complaint.studentId === null && !isAdminOrStaff);
+  const hasUpvoted = complaint.upvotes?.includes(user?.id) || complaint.upvotes?.includes(user?._id);
 
   return (
     <div className="min-h-screen bg-slate-950 text-slate-100 pb-16 relative overflow-hidden">
@@ -305,7 +307,7 @@ const ComplaintDetail = () => {
                   
                   {/* If image, let it display in high resolution directly or download */}
                   <a
-                    href={complaint.attachmentUrl.startsWith('/') ? `http://localhost:5000${complaint.attachmentUrl}` : complaint.attachmentUrl}
+                    href={complaint.attachmentUrl.startsWith('/') ? `${BASE_URL || ''}${complaint.attachmentUrl}` : complaint.attachmentUrl}
                     target="_blank"
                     rel="noreferrer"
                     className="flex items-center gap-1 text-[10px] text-slate-950 font-bold bg-brand-400 hover:bg-brand-500 px-3 py-1.5 rounded-lg transition-all"
@@ -319,7 +321,7 @@ const ComplaintDetail = () => {
                 {/\.(jpg|jpeg|png|gif)$/i.test(complaint.attachmentUrl) && (
                   <div className="mt-3 overflow-hidden rounded-xl border border-slate-850 max-w-sm max-h-60 bg-slate-900/40">
                     <img
-                      src={complaint.attachmentUrl.startsWith('/') ? `http://localhost:5000${complaint.attachmentUrl}` : complaint.attachmentUrl}
+                      src={complaint.attachmentUrl.startsWith('/') ? `${BASE_URL || ''}${complaint.attachmentUrl}` : complaint.attachmentUrl}
                       alt="Complaint attachment evidence"
                       className="w-full h-full object-cover"
                     />

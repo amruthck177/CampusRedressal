@@ -4,6 +4,7 @@ import axios from 'axios';
 const AuthContext = createContext();
 
 export const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000/api';
+export const BASE_URL = API_URL.replace(/\/api\/?$/, '');
 
 export const AuthProvider = ({ children }) => {
   const [user, setUser] = useState(null);
@@ -57,7 +58,7 @@ export const AuthProvider = ({ children }) => {
       let msg = err.response?.data?.message;
       if (!msg) {
         if (err.message === 'Network Error' || !err.response) {
-          msg = 'Cannot connect to backend server. Please make sure backend is running on port 5000.';
+          msg = `Cannot connect to backend server at ${API_URL}. Please ensure the server is active.`;
         } else {
           msg = 'Login failed. Please check your credentials.';
         }
@@ -80,7 +81,7 @@ export const AuthProvider = ({ children }) => {
       let msg = err.response?.data?.message;
       if (!msg) {
         if (err.message === 'Network Error' || !err.response) {
-          msg = 'Cannot connect to backend server. Please make sure backend is running on port 5000.';
+          msg = `Cannot connect to backend server at ${API_URL}. Please ensure the server is active.`;
         } else {
           msg = 'Registration failed. Please try again.';
         }
@@ -97,7 +98,7 @@ export const AuthProvider = ({ children }) => {
   };
 
   return (
-    <AuthContext.Provider value={{ user, loading, error, login, register, logout, API_URL }}>
+    <AuthContext.Provider value={{ user, loading, error, login, register, logout, API_URL, BASE_URL }}>
       {children}
     </AuthContext.Provider>
   );
