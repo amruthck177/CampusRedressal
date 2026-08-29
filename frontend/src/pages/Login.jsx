@@ -8,8 +8,19 @@ const Login = () => {
   const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
   const [formError, setFormError] = useState('');
+  const [showDemo, setShowDemo] = useState(false);
+  const [logoClicks, setLogoClicks] = useState(0);
   const { login } = useAuth();
   const navigate = useNavigate();
+
+  const handleLogoClick = () => {
+    const next = logoClicks + 1;
+    setLogoClicks(next);
+    if (next >= 5) {
+      setShowDemo(true);
+      setLogoClicks(0);
+    }
+  };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -73,7 +84,11 @@ const Login = () => {
       <div className="w-full max-w-md">
         {/* App Title Header */}
         <div className="flex flex-col items-center mb-8">
-          <div className="w-12 h-12 bg-gradient-to-tr from-brand-600 to-emerald-400 rounded-2xl flex items-center justify-center shadow-lg shadow-brand-500/20 mb-3 border border-brand-400/20">
+          <div
+            className="w-12 h-12 bg-gradient-to-tr from-brand-600 to-emerald-400 rounded-2xl flex items-center justify-center shadow-lg shadow-brand-500/20 mb-3 border border-brand-400/20 cursor-pointer select-none"
+            onClick={handleLogoClick}
+            title=""
+          >
             <ShieldCheck className="w-6 h-6 text-slate-950 stroke-[2.5]" />
           </div>
           <h1 className="text-3xl font-extrabold tracking-tight text-white font-sans">
@@ -153,11 +168,18 @@ const Login = () => {
           </p>
         </div>
 
-        {/* Quick Testing Credentials Panel */}
-        <div className="glass-card rounded-xl p-5 mt-6 border border-slate-800">
-          <div className="flex items-center gap-1.5 text-brand-400 text-xs font-bold uppercase tracking-wider mb-3">
-            <Sparkles className="w-3.5 h-3.5" />
-            <span>Developer / Grader Quick Login</span>
+        {/* Quick Testing Credentials Panel — hidden, revealed by clicking logo 5 times */}
+        <div
+          className={`glass-card rounded-xl p-5 mt-6 border border-slate-700/60 overflow-hidden transition-all duration-500 ease-in-out ${
+            showDemo ? 'max-h-40 opacity-100 translate-y-0' : 'max-h-0 opacity-0 -translate-y-2 pointer-events-none'
+          }`}
+        >
+          <div className="flex items-center justify-between mb-3">
+            <div className="flex items-center gap-1.5 text-brand-400 text-xs font-bold uppercase tracking-wider">
+              <Sparkles className="w-3.5 h-3.5" />
+              <span>Quick Login</span>
+            </div>
+            <button onClick={() => setShowDemo(false)} className="text-slate-600 hover:text-slate-400 text-xs">✕</button>
           </div>
           <div className="grid grid-cols-3 gap-2">
             <button
