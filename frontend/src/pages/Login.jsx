@@ -1,13 +1,14 @@
 import React, { useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
-import { ShieldCheck, Mail, Lock, AlertCircle } from 'lucide-react';
+import { ShieldCheck, Mail, Lock, AlertCircle, Sparkles, ChevronDown, ChevronUp } from 'lucide-react';
 
 const Login = () => {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
   const [formError, setFormError] = useState('');
+  const [showDemo, setShowDemo] = useState(false);
   const { login } = useAuth();
   const navigate = useNavigate();
 
@@ -32,6 +33,33 @@ const Login = () => {
       }
     } catch (err) {
       setFormError(err.message || 'Invalid email or password');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // Quick seed logins for graders
+  const handleQuickLogin = async (role) => {
+    setFormError('');
+    setLoading(true);
+    const credentials = {
+      student: { email: 'student@college.edu', pass: 'student123' },
+      admin: { email: 'admin@college.edu', pass: 'admin123' },
+      staff: { email: 'staff@college.edu', pass: 'staff123' },
+    };
+
+    const target = credentials[role];
+    try {
+      const user = await login(target.email, target.pass);
+      if (user.role === 'admin') {
+        navigate('/admin');
+      } else if (user.role === 'staff') {
+        navigate('/staff');
+      } else {
+        navigate('/student');
+      }
+    } catch (err) {
+      setFormError(err.message || 'Quick login failed');
     } finally {
       setLoading(false);
     }
@@ -124,6 +152,53 @@ const Login = () => {
               Create student account
             </Link>
           </p>
+        </div>
+
+        {/* Hidden / Collapsible Demo Credentials Button */}
+        <div className="mt-4 flex flex-col items-center">
+          <button
+            type="button"
+            onClick={() => setShowDemo(!showDemo)}
+            className="text-xs text-slate-500 hover:text-slate-300 flex items-center gap-1.5 transition-colors py-1 px-3 rounded-full hover:bg-slate-900/60 border border-transparent hover:border-slate-800"
+          >
+            <Sparkles className="w-3 h-3 text-brand-400/70" />
+            <span>{showDemo ? 'Hide Demo Logins' : 'Demo Logins'}</span>
+            {showDemo ? <ChevronUp className="w-3 h-3" /> : <ChevronDown className="w-3 h-3" />}
+          </button>
+
+          {showDemo && (
+            <div className="glass-card rounded-xl p-4 mt-3 w-full border border-slate-800/80 shadow-xl transition-all animate-fadeIn">
+              <div className="text-[11px] text-slate-400 mb-2.5 text-center">
+                Click any role below to sign in instantly:
+              </div>
+              <div className="grid grid-cols-3 gap-2">
+                <button
+                  onClick={() => handleQuickLogin('student')}
+                  disabled={loading}
+                  className="bg-slate-900 hover:bg-slate-800 border border-slate-800 hover:border-brand-500/40 text-left p-2 rounded-lg text-[10px] transition-all"
+                >
+                  <div className="font-semibold text-slate-200 truncate">Student</div>
+                  <div className="text-slate-500 text-[9px] truncate">student@college.edu</div>
+                </button>
+                <button
+                  onClick={() => handleQuickLogin('admin')}
+                  disabled={loading}
+                  className="bg-slate-900 hover:bg-slate-800 border border-slate-800 hover:border-emerald-500/40 text-left p-2 rounded-lg text-[10px] transition-all"
+                >
+                  <div className="font-semibold text-slate-200 truncate">Admin</div>
+                  <div className="text-slate-500 text-[9px] truncate">admin@college.edu</div>
+                </button>
+                <button
+                  onClick={() => handleQuickLogin('staff')}
+                  disabled={loading}
+                  className="bg-slate-900 hover:bg-slate-800 border border-slate-800 hover:border-blue-500/40 text-left p-2 rounded-lg text-[10px] transition-all"
+                >
+                  <div className="font-semibold text-slate-200 truncate">Staff</div>
+                  <div className="text-slate-500 text-[9px] truncate">staff@college.edu</div>
+                </button>
+              </div>
+            </div>
+          )}
         </div>
       </div>
     </div>
