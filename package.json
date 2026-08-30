@@ -1,0 +1,31 @@
+{
+  "name": "campus-redressal-system",
+  "version": "1.0.0",
+  "description": "Campus Redressal Complaint Management System",
+  "private": true,
+  "engines": {
+    "node": ">=18.0.0"
+  },
+  "scripts": {
+    "install:all": "npm install --prefix backend && npm install --prefix frontend",
+    "build": "npm install --prefix backend && npm install --prefix frontend && npm run build --prefix frontend",
+    "build:frontend": "npm run build --prefix frontend",
+    "start": "node backend/server.js",
+    "start:prod": "NODE_ENV=production node backend/server.js",
+    "dev": "npm run backend",
+    "backend": "npm run dev --prefix backend",
+    "frontend": "npm run dev --prefix frontend",
+    "seed": "npm run seed --prefix backend",
+    "test": "echo \"No tests specified yet\" && exit 0"
+  },
+  "keywords": [
+    "campus-redressal",
+    "complaint-management",
+    "mern",
+    "react",
+    "express",
+    "mongodb"
+  ],
+  "author": "",
+  "license": "ISC"
+}

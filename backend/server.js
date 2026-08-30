@@ -5,6 +5,7 @@ const cors = require('cors');
 const path = require('path');
 const fs = require('fs');
 const multer = require('multer');
+const cloudinary = require('cloudinary').v2;
 
 const authController = require('./controllers/authController');
 const complaintController = require('./controllers/complaintController');
@@ -12,35 +13,20 @@ const { auth, restrictTo } = require('./middleware/auth');
 
 const app = express();
 
-// Middlewares
-const allowedOrigins = process.env.FRONTEND_URL
-  ? [process.env.FRONTEND_URL, 'http://localhost:5173', 'http://localhost:5174', 'http://localhost:3000', 'http://127.0.0.1:5173', 'http://127.0.0.1:5174']
-  : ['http://localhost:5173', 'http://localhost:5174', 'http://localhost:3000', 'http://127.0.0.1:5173', 'http://127.0.0.1:5174'];
+// Cloudinary Configuration
+const isCloudinaryConfigured = Boolean(
+  process.env.CLOUDINARY_CLOUD_NAME &&
+  process.env.CLOUDINARY_API_KEY &&
+  process.env.CLOUDINARY_API_SECRET
+);
 
-app.use(cors({
-  origin: (origin, callback) => {
-    // Allow requests with no origin (e.g. mobile apps, curl, postman)
-    if (!origin) return callback(null, true);
-    
-    // Allow any localhost / 127.0.0.1 port in development or preview
-    if (/^https?:\/\/(localhost|127\.0\.0\.1)(:\d+)?$/.test(origin)) {
-      return callback(null, true);
-    }
-
-    // Allow Vercel deployments
-    if (/^https:\/\/[a-zA-Z0-9_-]+\.vercel\.app$/.test(origin)) {
-      return callback(null, true);
-    }
-
-    if (allowedOrigins.includes(origin) || process.env.NODE_ENV !== 'production') {
-      return callback(null, true);
-    }
-    
-    return callback(new Error('Not allowed by CORS'));
-  },
-  credentials: true,
-}));
-app.use(express.json());
+if (isCloudinaryConfigured) {
+  cloudinary.config({
+    cloud_name: process.env.CLOUDINARY_CLOUD_NAME,
+    api_key: process.env.CLOUDINARY_API_KEY,
+    api_secret: process.env.CLOUDINARY_API_SECRET,
+  });
+}
 
 // Ensure local uploads directory exists
 const uploadsDir = path.join(__dirname, 'uploads');
@@ -48,23 +34,85 @@ if (!fs.existsSync(uploadsDir)) {
   fs.mkdirSync(uploadsDir, { recursive: true });
 }
 
-// Serve uploaded files statically
-app.use('/uploads', express.static(uploadsDir));
+// Multer Storage Configuration (Memory for Cloudinary, Disk for Local)
+const storage = isCloudinaryConfigured
+  ? multer.memoryStorage()
+  : multer.diskStorage({
+      destination: (req, file, cb) => {
+        cb(null, uploadsDir);
+      },
+      filename: (req, file, cb) => {
+        const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1e9);
+        cb(null, file.fieldname + '-' + uniqueSuffix + path.extname(file.originalname));
+      },
+    });
 
-// Multer Local Storage Configuration
-const storage = multer.diskStorage({
-  destination: (req, file, cb) => {
-    cb(null, uploadsDir);
-  },
-  filename: (req, file, cb) => {
-    const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1e9);
-    cb(null, file.fieldname + '-' + uniqueSuffix + path.extname(file.originalname));
-  },
-});
 const upload = multer({
   storage,
   limits: { fileSize: 5 * 1024 * 1024 }, // 5MB limit
 });
+
+// Configure Allowed Origins for CORS
+const rawFrontendUrl = process.env.FRONTEND_URL || '';
+const configuredOrigins = rawFrontendUrl
+  .split(',')
+  .map((o) => o.trim())
+  .filter(Boolean);
+
+const defaultOrigins = [
+  'http://localhost:5173',
+  'http://localhost:5174',
+  'http://localhost:3000',
+  'http://127.0.0.1:5173',
+  'http://127.0.0.1:5174',
+];
+
+const allowedOrigins = [...new Set([...configuredOrigins, ...defaultOrigins])];
+
+app.use(
+  cors({
+    origin: (origin, callback) => {
+      // Allow requests with no origin (e.g. mobile apps, curl, postman, same-origin)
+      if (!origin) return callback(null, true);
+
+      // Allow any localhost / 127.0.0.1 port in development or preview
+      if (/^https?:\/\/(localhost|127\.0\.0\.1)(:\d+)?$/.test(origin)) {
+        return callback(null, true);
+      }
+
+      // Allow Vercel preview & production deployments
+      if (/^https:\/\/[a-zA-Z0-9_-]+\.vercel\.app$/.test(origin)) {
+        return callback(null, true);
+      }
+
+      // Allow Render preview & production deployments
+      if (/^https:\/\/[a-zA-Z0-9_-]+\.onrender\.com$/.test(origin)) {
+        return callback(null, true);
+      }
+
+      // Allow Netlify deployments
+      if (/^https:\/\/[a-zA-Z0-9_-]+\.netlify\.app$/.test(origin)) {
+        return callback(null, true);
+      }
+
+      if (
+        allowedOrigins.includes(origin) ||
+        process.env.NODE_ENV !== 'production' ||
+        process.env.CORS_ORIGIN === '*'
+      ) {
+        return callback(null, true);
+      }
+
+      return callback(new Error('Not allowed by CORS'));
+    },
+    credentials: true,
+  })
+);
+
+app.use(express.json());
+
+// Serve uploaded files statically if stored locally
+app.use('/uploads', express.static(uploadsDir));
 
 // Database connection logic
 let isConnecting = false;
@@ -78,26 +126,28 @@ const connectDatabase = async () => {
   if (mongoUri) {
     try {
       await mongoose.connect(mongoUri);
-      console.log('Connected to MongoDB Atlas successfully.');
+      console.log('Connected to MongoDB successfully.');
     } catch (err) {
-      console.error('Failed to connect to MongoDB Atlas:', err.message);
-      if (require.main === module) process.exit(1);
+      console.error('Failed to connect to MongoDB:', err.message);
+      if (require.main === module && process.env.NODE_ENV === 'production') {
+        process.exit(1);
+      }
     } finally {
       isConnecting = false;
     }
   } else {
     try {
-      console.log('No MONGODB_URI found. Starting In-Memory MongoDB server...');
+      console.log('No MONGODB_URI found. Starting In-Memory MongoDB server for development...');
       const { MongoMemoryServer } = require('mongodb-memory-server');
       const mongoServer = await MongoMemoryServer.create({
         instance: {
-          dbName: 'campus-redressal'
-        }
+          dbName: 'campus-redressal',
+        },
       });
       const uri = mongoServer.getUri();
       await mongoose.connect(uri);
       console.log('Connected to In-Memory MongoDB:', uri);
-      
+
       const seedScript = require('./scripts/seed');
       await seedScript.seedData();
       console.log('In-Memory DB seeded with default credentials.');
@@ -118,6 +168,23 @@ app.use(async (req, res, next) => {
   next();
 });
 
+// Health check endpoint (for Render, Railway, AWS, uptime monitors)
+app.get(['/api/health', '/health'], (req, res) => {
+  const states = ['disconnected', 'connected', 'connecting', 'disconnecting'];
+  const dbStatus = states[mongoose.connection.readyState] || 'unknown';
+  res.status(200).json({
+    status: 'healthy',
+    timestamp: new Date().toISOString(),
+    uptime: Math.floor(process.uptime()),
+    database: {
+      status: dbStatus,
+      connected: mongoose.connection.readyState === 1,
+    },
+    storage: isCloudinaryConfigured ? 'cloudinary' : 'local_disk',
+    environment: process.env.NODE_ENV || 'development',
+  });
+});
+
 // API Routes
 
 // Authentication
@@ -136,26 +203,63 @@ app.post('/api/complaints/:id/comments', auth, complaintController.addComment);
 app.post('/api/complaints/:id/upvote', auth, complaintController.upvoteComplaint);
 app.post('/api/complaints/:id/feedback', auth, complaintController.submitFeedback);
 app.post('/api/complaints/:id/reopen', auth, complaintController.reopenComplaint);
-app.get('/api/complaints', auth, complaintController.getComplaints); // Admin/staff/student list (general list filtering)
+app.get('/api/complaints', auth, complaintController.getComplaints);
 
-// Default root route
-app.get('/', (req, res) => {
-  res.json({ message: 'Campus Redressal Complaint System API running.' });
-});
+// Serve static frontend build if dist directory exists (for unified all-in-one deployment)
+const frontendDistPath = path.join(__dirname, '../frontend/dist');
+if (fs.existsSync(frontendDistPath)) {
+  app.use(express.static(frontendDistPath));
+  app.get('*', (req, res, next) => {
+    if (
+      req.path.startsWith('/api') ||
+      req.path.startsWith('/uploads') ||
+      req.path.startsWith('/health')
+    ) {
+      return next();
+    }
+    res.sendFile(path.join(frontendDistPath, 'index.html'));
+  });
+} else {
+  // Default root route when frontend is hosted separately
+  app.get('/', (req, res) => {
+    res.json({
+      message: 'Campus Redressal Complaint System API running.',
+      healthCheck: '/api/health',
+      documentation: 'https://github.com',
+    });
+  });
+}
 
 // Error handling middleware
 app.use((err, req, res, next) => {
-  console.error(err.stack);
-  res.status(500).json({ message: err.message || 'Something went wrong on the server!' });
+  console.error(err.stack || err);
+  res.status(err.status || 500).json({
+    message: err.message || 'Something went wrong on the server!',
+  });
 });
 
 const PORT = process.env.PORT || 5000;
 
 if (require.main === module) {
   connectDatabase().then(() => {
-    app.listen(PORT, () => {
+    const server = app.listen(PORT, () => {
       console.log(`Server is running on port ${PORT}`);
     });
+
+    // Graceful shutdown
+    const gracefulShutdown = (signal) => {
+      console.log(`${signal} signal received. Closing HTTP server...`);
+      server.close(() => {
+        console.log('HTTP server closed.');
+        mongoose.connection.close(false).then(() => {
+          console.log('MongoDB connection closed.');
+          process.exit(0);
+        });
+      });
+    };
+
+    process.on('SIGTERM', () => gracefulShutdown('SIGTERM'));
+    process.on('SIGINT', () => gracefulShutdown('SIGINT'));
   });
 }
 

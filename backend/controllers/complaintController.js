@@ -1,5 +1,12 @@
 const Complaint = require('../models/Complaint');
 const AuditLog = require('../models/AuditLog');
+const cloudinary = require('cloudinary').v2;
+
+const isCloudinaryConfigured = Boolean(
+  process.env.CLOUDINARY_CLOUD_NAME &&
+  process.env.CLOUDINARY_API_KEY &&
+  process.env.CLOUDINARY_API_SECRET
+);
 
 // Helper to map category to department
 const mapCategoryToDepartment = (category) => {
@@ -21,9 +28,32 @@ exports.createComplaint = async (req, res) => {
     const { title, category, description, isAnonymous } = req.body;
     let attachmentUrl = req.body.attachmentUrl || null;
 
-    // Check if file was uploaded via multer and stored locally
+    // Check if file was uploaded via multer
     if (req.file) {
-      attachmentUrl = `/uploads/${req.file.filename}`;
+      if (isCloudinaryConfigured && req.file.buffer) {
+        try {
+          const uploadPromise = new Promise((resolve, reject) => {
+            const stream = cloudinary.uploader.upload_stream(
+              {
+                folder: 'campus-redressal',
+                resource_type: 'auto',
+              },
+              (error, result) => {
+                if (error) reject(error);
+                else resolve(result);
+              }
+            );
+            stream.end(req.file.buffer);
+          });
+          const uploadResult = await uploadPromise;
+          attachmentUrl = uploadResult.secure_url;
+        } catch (uploadErr) {
+          console.error('Cloudinary upload error:', uploadErr);
+          return res.status(500).json({ message: 'Failed to upload attachment to cloud storage' });
+        }
+      } else if (req.file.filename) {
+        attachmentUrl = `/uploads/${req.file.filename}`;
+      }
     }
 
     if (!title || !category || !description) {
