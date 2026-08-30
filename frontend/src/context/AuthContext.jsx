@@ -53,6 +53,7 @@ export const AuthProvider = ({ children }) => {
   const login = async (email, password) => {
     setError(null);
     try {
+      console.log(`[Auth] Attempting login to ${API_URL}/auth/login with ${email}`);
       const res = await axios.post(`${API_URL}/auth/login`, { email, password });
       const { token, user: loggedUser } = res.data;
       localStorage.setItem('token', token);
@@ -60,12 +61,23 @@ export const AuthProvider = ({ children }) => {
       setUser(loggedUser);
       return loggedUser;
     } catch (err) {
-      let msg = err.response?.data?.message;
+      console.error('[Auth] Login error details:', err.response || err);
+      let msg =
+        err.response?.data?.message ||
+        err.response?.data?.error ||
+        (typeof err.response?.data === 'string' && !err.response.data.includes('<!DOCTYPE')
+          ? err.response.data
+          : null);
+
       if (!msg) {
         if (err.message === 'Network Error' || !err.response) {
           msg = `Cannot connect to backend server at ${API_URL}. Please ensure the server is active.`;
+        } else if (err.response?.status === 400) {
+          msg = 'Invalid email or password. Please check your credentials.';
+        } else if (err.response?.status === 404) {
+          msg = 'User not found. Please check your email or register an account.';
         } else {
-          msg = 'Login failed. Please check your credentials.';
+          msg = err.message || 'Login failed. Please check your credentials.';
         }
       }
       setError(msg);
@@ -76,6 +88,7 @@ export const AuthProvider = ({ children }) => {
   const register = async (name, email, password, studentId) => {
     setError(null);
     try {
+      console.log(`[Auth] Attempting register to ${API_URL}/auth/register with ${email}`);
       const res = await axios.post(`${API_URL}/auth/register`, { name, email, password, studentId });
       const { token, user: registeredUser } = res.data;
       localStorage.setItem('token', token);
@@ -83,12 +96,21 @@ export const AuthProvider = ({ children }) => {
       setUser(registeredUser);
       return registeredUser;
     } catch (err) {
-      let msg = err.response?.data?.message;
+      console.error('[Auth] Register error details:', err.response || err);
+      let msg =
+        err.response?.data?.message ||
+        err.response?.data?.error ||
+        (typeof err.response?.data === 'string' && !err.response.data.includes('<!DOCTYPE')
+          ? err.response.data
+          : null);
+
       if (!msg) {
         if (err.message === 'Network Error' || !err.response) {
           msg = `Cannot connect to backend server at ${API_URL}. Please ensure the server is active.`;
+        } else if (err.response?.status === 400) {
+          msg = 'Registration error: Please verify your details or use an allowed email.';
         } else {
-          msg = 'Registration failed. Please try again.';
+          msg = err.message || 'Registration failed. Please try again.';
         }
       }
       setError(msg);

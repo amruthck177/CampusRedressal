@@ -52,62 +52,19 @@ const upload = multer({
   limits: { fileSize: 5 * 1024 * 1024 }, // 5MB limit
 });
 
-// Configure Allowed Origins for CORS
-const rawFrontendUrl = process.env.FRONTEND_URL || '';
-const configuredOrigins = rawFrontendUrl
-  .split(',')
-  .map((o) => o.trim())
-  .filter(Boolean);
-
-const defaultOrigins = [
-  'http://localhost:5173',
-  'http://localhost:5174',
-  'http://localhost:3000',
-  'http://127.0.0.1:5173',
-  'http://127.0.0.1:5174',
-];
-
-const allowedOrigins = [...new Set([...configuredOrigins, ...defaultOrigins])];
-
+// Configure Permissive CORS for all environments & Vercel subdomains
 app.use(
   cors({
     origin: (origin, callback) => {
-      // Allow requests with no origin (e.g. mobile apps, curl, postman, same-origin)
-      if (!origin) return callback(null, true);
-
-      // Allow any localhost / 127.0.0.1 port in development or preview
-      if (/^https?:\/\/(localhost|127\.0\.0\.1)(:\d+)?$/.test(origin)) {
-        return callback(null, true);
-      }
-
-      // Allow Vercel preview & production deployments
-      if (/^https:\/\/[a-zA-Z0-9_-]+\.vercel\.app$/.test(origin)) {
-        return callback(null, true);
-      }
-
-      // Allow Render preview & production deployments
-      if (/^https:\/\/[a-zA-Z0-9_-]+\.onrender\.com$/.test(origin)) {
-        return callback(null, true);
-      }
-
-      // Allow Netlify deployments
-      if (/^https:\/\/[a-zA-Z0-9_-]+\.netlify\.app$/.test(origin)) {
-        return callback(null, true);
-      }
-
-      if (
-        allowedOrigins.includes(origin) ||
-        process.env.NODE_ENV !== 'production' ||
-        process.env.CORS_ORIGIN === '*'
-      ) {
-        return callback(null, true);
-      }
-
-      return callback(new Error('Not allowed by CORS'));
+      // Allow all origins (Authorization Bearer token based API)
+      callback(null, true);
     },
     credentials: true,
+    methods: ['GET', 'HEAD', 'PUT', 'PATCH', 'POST', 'DELETE', 'OPTIONS'],
+    allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With', 'Accept'],
   })
 );
+app.options('*', cors());
 
 app.use(express.json());
 
