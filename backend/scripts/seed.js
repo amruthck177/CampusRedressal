@@ -1,4 +1,6 @@
-require('dotenv').config();
+const path = require('path');
+require('dotenv').config({ path: path.join(__dirname, '../.env') });
+require('dotenv').config(); // Fallback for root .env if present
 const mongoose = require('mongoose');
 const User = require('../models/User');
 const Complaint = require('../models/Complaint');
