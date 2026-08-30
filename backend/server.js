@@ -84,6 +84,16 @@ const connectDatabase = async () => {
     try {
       await mongoose.connect(mongoUri);
       console.log('Connected to MongoDB successfully.');
+
+      // Check if DB is empty, auto-seed default accounts
+      const User = require('./models/User');
+      const userCount = await User.countDocuments();
+      if (userCount === 0) {
+        console.log('Database is empty. Auto-seeding initial administrative & student accounts...');
+        const seedScript = require('./scripts/seed');
+        await seedScript.seedData();
+        console.log('Initial accounts auto-seeded.');
+      }
     } catch (err) {
       console.error('Failed to connect to MongoDB:', err.message);
       if (require.main === module && process.env.NODE_ENV === 'production') {
@@ -142,25 +152,25 @@ app.get(['/api/health', '/health'], (req, res) => {
   });
 });
 
-// API Routes
+// API Routes (Supporting both with and without /api prefix for bulletproof client routing)
 
 // Authentication
-app.post('/api/auth/register', authController.register);
-app.post('/api/auth/login', authController.login);
-app.get('/api/auth/me', auth, authController.getMe);
+app.post(['/api/auth/register', '/auth/register'], authController.register);
+app.post(['/api/auth/login', '/auth/login'], authController.login);
+app.get(['/api/auth/me', '/auth/me'], auth, authController.getMe);
 
 // Complaints Routing
-app.post('/api/complaints', auth, upload.single('attachment'), complaintController.createComplaint);
-app.get('/api/complaints/mine', auth, complaintController.getMyComplaints);
-app.get('/api/complaints/check-duplicate', auth, complaintController.checkDuplicate);
-app.get('/api/complaints/analytics', auth, restrictTo('admin', 'staff'), complaintController.getAnalytics);
-app.get('/api/complaints/:id', auth, complaintController.getComplaintById);
-app.patch('/api/complaints/:id/status', auth, restrictTo('admin', 'staff'), complaintController.updateStatus);
-app.post('/api/complaints/:id/comments', auth, complaintController.addComment);
-app.post('/api/complaints/:id/upvote', auth, complaintController.upvoteComplaint);
-app.post('/api/complaints/:id/feedback', auth, complaintController.submitFeedback);
-app.post('/api/complaints/:id/reopen', auth, complaintController.reopenComplaint);
-app.get('/api/complaints', auth, complaintController.getComplaints);
+app.post(['/api/complaints', '/complaints'], auth, upload.single('attachment'), complaintController.createComplaint);
+app.get(['/api/complaints/mine', '/complaints/mine'], auth, complaintController.getMyComplaints);
+app.get(['/api/complaints/check-duplicate', '/complaints/check-duplicate'], auth, complaintController.checkDuplicate);
+app.get(['/api/complaints/analytics', '/complaints/analytics'], auth, restrictTo('admin', 'staff'), complaintController.getAnalytics);
+app.get(['/api/complaints/:id', '/complaints/:id'], auth, complaintController.getComplaintById);
+app.patch(['/api/complaints/:id/status', '/complaints/:id/status'], auth, restrictTo('admin', 'staff'), complaintController.updateStatus);
+app.post(['/api/complaints/:id/comments', '/complaints/:id/comments'], auth, complaintController.addComment);
+app.post(['/api/complaints/:id/upvote', '/complaints/:id/upvote'], auth, complaintController.upvoteComplaint);
+app.post(['/api/complaints/:id/feedback', '/complaints/:id/feedback'], auth, complaintController.submitFeedback);
+app.post(['/api/complaints/:id/reopen', '/complaints/:id/reopen'], auth, complaintController.reopenComplaint);
+app.get(['/api/complaints', '/complaints'], auth, complaintController.getComplaints);
 
 // Serve static frontend build if dist directory exists (for unified all-in-one deployment)
 const frontendDistPath = path.join(__dirname, '../frontend/dist');
